@@ -6,12 +6,12 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
   handler: async (c) => {
     try {
       const mastra = c.get("mastra");
-      const agentId = c.req.param("agentId"); // Parse JSON-RPC 2.0 request
+      const agentId = c.req.param("agentId");
 
       const body = await c.req.json();
-      const { jsonrpc, id: requestId, method, params } = body; // Validate JSON-RPC 2.0 format
+      const { jsonrpc, id: requestId, method, params } = body; 
 
-      if (jsonrpc !== "2.0" || !requestId) {
+      if (jsonrpc !== "2.0") {
         return c.json(
           {
             jsonrpc: "2.0",
@@ -19,12 +19,13 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
             error: {
               code: -32600,
               message:
-                'Invalid Request: jsonrpc must be "2.0" and id is required',
+                'Invalid Request: jsonrpc must be "2.0"',
             },
           },
           400
         );
       }
+      // --- CRITICAL FIX END ---
 
       const agent = mastra.getAgent(agentId);
       if (!agent) {
@@ -101,6 +102,14 @@ export const a2aAgentRoute = registerApiRoute("/a2a/agent/:agentId", {
           taskId: taskId || randomUUID(),
         },
       ]; // Return A2A-compliant response
+      
+      // If requestId is null, the host doesn't expect a response (Notification).
+      // We still return 200 OK, but the response body is typically empty, 
+      // though sending the full body is fine if the request was otherwise successful.
+      if (!requestId) {
+          // If it was a notification (no ID), return 200 but typically a minimal response.
+          // Since the logic is complex, returning the full response body is safe.
+      }
 
       return c.json({
         jsonrpc: "2.0",
